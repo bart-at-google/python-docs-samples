@@ -1,0 +1,104 @@
+# Copyright 2018 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import print_function
+
+import argparse
+import datetime
+import sys
+
+
+def create_task(project, queue, location, url, in_seconds=None):
+    # [START cloud_tasks_create_http_task]
+    """Create a task for a given queue with an arbitrary payload."""
+
+    import google
+    import http_alpha_cloud
+    sys.modules["google"].cloud = http_alpha_cloud
+    sys.modules["google.cloud"] = http_alpha_cloud
+    from google.cloud import tasks_v2beta3
+    from google.protobuf import timestamp_pb2
+
+    # Create a client.
+    client = tasks_v2beta3.CloudTasksClient()
+
+    # Construct the fully qualified queue name.
+    parent = client.queue_path(project, location, queue)
+
+    # Construct the request body.
+    task = {
+            'http_request': {  # Specify the type of request.
+                'http_method': 'GET',
+                'url': url
+            }
+    }
+
+    if in_seconds is not None:
+        # Convert "seconds from now" into an rfc3339 datetime string.
+        d = datetime.datetime.utcnow() + datetime.timedelta(seconds=in_seconds)
+
+        # Create Timestamp protobuf.
+        timestamp = timestamp_pb2.Timestamp()
+        timestamp.FromDatetime(d)
+
+        # Add the timestamp to the tasks.
+        task['schedule_time'] = timestamp
+
+    # Use the client to build and send the task.
+    response = client.create_task(parent, task)
+
+    print('Created task {}'.format(response.name))
+    return response
+# [END cloud_tasks_create_http_task]
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description=create_task.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument(
+        '--project',
+        help='Project of the queue to add the task to.',
+        required=True,
+    )
+
+    parser.add_argument(
+        '--queue',
+        help='ID (short name) of the queue to add the task to.',
+        required=True,
+    )
+
+    parser.add_argument(
+        '--location',
+        help='Location of the queue to add the task to.',
+        required=True,
+    )
+
+    parser.add_argument(
+        '--url',
+        help='URL to push the task to.',
+        required=True,
+    )
+
+    parser.add_argument(
+        '--in_seconds', type=int,
+        help='The number of seconds from now to schedule task attempt.'
+    )
+
+    args = parser.parse_args()
+
+    create_task(
+        args.project, args.queue, args.location,
+        args.url, args.in_seconds)
