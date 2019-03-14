@@ -16,17 +16,12 @@ from __future__ import print_function
 
 import argparse
 import datetime
-import sys
 
 
 def create_task(project, queue, location, url, in_seconds=None):
     # [START cloud_tasks_create_http_task]
     """Create a task for a given queue with an arbitrary payload."""
 
-    import google
-    import http_alpha_cloud
-    sys.modules["google"].cloud = http_alpha_cloud
-    sys.modules["google.cloud"] = http_alpha_cloud
     from google.cloud import tasks_v2beta3
     from google.protobuf import timestamp_pb2
 
